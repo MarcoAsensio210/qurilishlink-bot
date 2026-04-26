@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QurilishLink Admin Panel</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f1117;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #2d3748;
+        }
+
+        .header-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #2E75B6, #1a4a7a);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .header p {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .badge {
+            margin-left: auto;
+            background: #1a4a7a;
+            color: #63b3ed;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            padding: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .stat-card.blue::before { background: linear-gradient(90deg, #2E75B6, #63b3ed); }
+        .stat-card.green::before { background: linear-gradient(90deg, #38a169, #68d391); }
+        .stat-card.orange::before { background: linear-gradient(90deg, #dd6b20, #f6ad55); }
+        .stat-card.purple::before { background: linear-gradient(90deg, #805ad5, #b794f4); }
+
+        .stat-icon { font-size: 24px; margin-bottom: 8px; }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 4px;
+        }
+        .stat-change {
+            font-size: 11px;
+            color: #68d391;
+            margin-top: 4px;
+        }
+
+        .section {
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+            background: #0f1117;
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 6px 8px;
+            border: none;
+            background: transparent;
+            color: #718096;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: #2E75B6;
+            color: #fff;
+        }
+
+        .revenue-display {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a4a7a22, #2E75B622);
+            border: 1px solid #2E75B644;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .revenue-amount {
+            font-size: 40px;
+            font-weight: 800;
+            color: #63b3ed;
+            line-height: 1;
+        }
+
+        .revenue-label {
+            font-size: 13px;
+            color: #718096;
+            margin-top: 4px;
+        }
+
+        .revenue-sub {
+            font-size: 12px;
+            color: #4a5568;
+            margin-top: 8px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 200px;
+            margin-bottom: 8px;
+        }
+
+        .order-item {
+            background: #0f1117;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .order-id {
+            font-size: 12px;
+            font-weight: 700;
+            color: #63b3ed;
+        }
+
+        .order-status {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #744210;
+            color: #f6ad55;
+        }
+
+        .order-status.completed {
+            background: #1c4532;
+            color: #68d391;
+        }
+
+        .order-details {
+            font-size: 12px;
+            color: #a0aec0;
+            line-height: 1.6;
+        }
+
+        .order-amount {
+            font-size: 14px;
+            font-weight: 700;
+            color: #68d391;
+            margin-top: 4px;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: #0f1117;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .user-avatar.supplier { background: #1a4a7a; }
+        .user-avatar.buyer { background: #1c4532; }
+
+        .user-name { font-size: 13px; font-weight: 600; color: #fff; }
+        .user-company { font-size: 11px; color: #718096; }
+
+        .user-role {
+            margin-left: auto;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .user-role.supplier { background: #1a4a7a; color: #63b3ed; }
+        .user-role.buyer { background: #1c4532; color: #68d391; }
+
+        .nav-tabs {
+            display: flex;
+            gap: 4px;
+            background: #0f1117;
+            padding: 4px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 8px 4px;
+            border: none;
+            background: transparent;
+            color: #718096;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .nav-tab .nav-icon { font-size: 18px; }
+        .nav-tab.active { background: #2E75B6; color: #fff; }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #2d3748;
+            border-top-color: #2E75B6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-state {
+            text-align: center;
+            padding: 32px;
+            color: #4a5568;
+        }
+
+        .empty-state .empty-icon { font-size: 40px; margin-bottom: 8px; }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #2d3748;
+        }
+
+        .metric-row:last-child { border-bottom: none; }
+        .metric-name { font-size: 13px; color: #a0aec0; }
+        .metric-val { font-size: 14px; font-weight: 700; color: #fff; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-icon">🏗</div>
+    <div>
+        <h1>QurilishLink</h1>
+        <p>Admin Panel</p>
+    </div>
+    <div class="badge">ADMIN</div>
+</div>
+
+<div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('overview')">
+        <span class="nav-icon">📊</span>Overview
+    </button>
+    <button class="nav-tab" onclick="showPage('orders')">
+        <span class="nav-icon">📦</span>Orders
+    </button>
+    <button class="nav-tab" onclick="showPage('revenue')">
+        <span class="nav-icon">💰</span>Revenue
+    </button>
+    <button class="nav-tab" onclick="showPage('users')">
+        <span class="nav-icon">👥</span>Users
+    </button>
+</div>
+
+<!-- OVERVIEW PAGE -->
+<div id="page-overview" class="page active">
+    <div class="stats-grid">
+        <div class="stat-card blue">
+            <div class="stat-icon">🏗</div>
+            <div class="stat-value" id="total-suppliers">--</div>
+            <div class="stat-label">Suppliers</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-icon">🛒</div>
+            <div class="stat-value" id="total-buyers">--</div>
+            <div class="stat-label">Buyers</div>
+        </div>
+        <div class="stat-card orange">
+            <div class="stat-icon">📦</div>
+            <div class="stat-value" id="total-orders">--</div>
+            <div class="stat-label">Total Orders</div>
+        </div>
+        <div class="stat-card purple">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value" id="total-revenue">--</div>
+            <div class="stat-label">Total Revenue</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">📈 Platform Activity</div>
+        <div style="margin-top:12px">
+            <div class="metric-row">
+                <span class="metric-name">⏳ Pending Orders</span>
+                <span class="metric-val" id="pending-orders">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-name">📅 Orders This Week</span>
+                <span class="metric-val" id="week-orders">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-name">🗓 Orders This Month</span>
+                <span class="metric-val" id="month-orders">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-name">💵 Revenue This Week</span>
+                <span class="metric-val" id="week-revenue">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-name">💵 Revenue This Month</span>
+                <span class="metric-val" id="month-revenue">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-name">📊 Commission Rate</span>
+                <span class="metric-val">2%</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ORDERS PAGE -->
+<div id="page-orders" class="page">
+    <div class="filter-tabs">
+        <button class="tab active" onclick="filterOrders('week', this)">Week</button>
+        <button class="tab" onclick="filterOrders('month', this)">Month</button>
+        <button class="tab" onclick="filterOrders('year', this)">Year</button>
+        <button class="tab" onclick="filterOrders('all', this)">All</button>
+    </div>
+    <div id="orders-list">
+        <div class="loading">
+            <div class="spinner"></div>
+            Loading orders...
+        </div>
+    </div>
+</div>
+
+<!-- REVENUE PAGE -->
+<div id="page-revenue" class="page">
+    <div class="filter-tabs">
+        <button class="tab active" onclick="filterRevenue('week', this)">Week</button>
+        <button class="tab" onclick="filterRevenue('month', this)">Month</button>
+        <button class="tab" onclick="filterRevenue('year', this)">Year</button>
+        <button class="tab" onclick="filterRevenue('all', this)">All Time</button>
+    </div>
+
+    <div class="revenue-display">
+        <div class="revenue-amount" id="revenue-display">$0.00</div>
+        <div class="revenue-label">Platform Revenue</div>
+        <div class="revenue-sub" id="revenue-period-label">This Week</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">📊 Revenue Breakdown</div>
+        <div style="margin-top:12px">
+            <div class="metric-row">
+                <span class="metric-name">📅 This Week</span>
+                <span class="metric-val" id="rev-week">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-name">🗓 This Month</span>
+                <span class="metric-val" id="rev-month">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-name">📆 This Year</span>
+                <span class="metric-val" id="rev-year">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-name">💵 All Time</span>
+                <span class="metric-val" id="rev-all">--</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- USERS PAGE -->
+<div id="page-users" class="page">
+    <div id="users-list">
+        <div class="loading">
+            <div class="spinner"></div>
+            Loading users...
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize Telegram Web App
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.setHeaderColor('#0f1117');
+    tg.setBackgroundColor('#0f1117');
+
+    // Sample data — in production this comes from bot via initData
+    const sampleData = {
+        stats: {
+            suppliers: 5,
+            buyers: 12,
+            orders: 28,
+            pending: 7,
+            revenue: 1240.50,
+            weekOrders: 8,
+            monthOrders: 22,
+            weekRevenue: 380.00,
+            monthRevenue: 960.00,
+            yearRevenue: 1240.50
+        },
+        orders: [
+            { id: 1, buyer: "Toshkent Qurilish LLC", supplier: "FatxStroy", material: "Steel", qty: 100, total: 10000, commission: 200, status: "Pending", date: "2026-04-25" },
+            { id: 2, buyer: "Samarkand Build Co", supplier: "BekCement", material: "Cement", qty: 500, total: 15000, commission: 300, status: "Completed", date: "2026-04-24" },
+            { id: 3, buyer: "Namangan Construkt", supplier: "UzSteel", material: "Steel Bars", qty: 200, total: 8000, commission: 160, status: "Pending", date: "2026-04-23" },
+            { id: 4, buyer: "Fergana Build", supplier: "SandPro", material: "Sand", qty: 1000, total: 5000, commission: 100, status: "Completed", date: "2026-04-22" },
+            { id: 5, buyer: "Andijan Group", supplier: "BekCement", material: "Cement", qty: 300, total: 9000, commission: 180, status: "Pending", date: "2026-04-21" },
+        ],
+        users: [
+            { name: "Abdulloh Karimov", company: "FatxStroy", role: "supplier" },
+            { name: "Sardor Anvarov", company: "BekCement", role: "supplier" },
+            { name: "Jasur Toshmatov", company: "UzSteel", role: "supplier" },
+            { name: "Botir Yusupov", company: "Toshkent Qurilish LLC", role: "buyer" },
+            { name: "Dilshod Rahimov", company: "Samarkand Build Co", role: "buyer" },
+            { name: "Nodir Hasanov", company: "Namangan Construkt", role: "buyer" },
+        ]
+    };
+
+    // Try to get real data from Telegram initData
+    let appData = sampleData;
+    try {
+        if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+            const decoded = JSON.parse(atob(tg.initDataUnsafe.start_param));
+            if (decoded.stats) appData = decoded;
+        }
+    } catch(e) {}
+
+    function showPage(page) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('page-' + page).classList.add('active');
+        event.currentTarget.classList.add('active');
+
+        if (page === 'orders') renderOrders('week');
+        if (page === 'users') renderUsers();
+        if (page === 'revenue') renderRevenue('week');
+    }
+
+    function loadOverview() {
+        const s = appData.stats;
+        document.getElementById('total-suppliers').textContent = s.suppliers;
+        document.getElementById('total-buyers').textContent = s.buyers;
+        document.getElementById('total-orders').textContent = s.orders;
+        document.getElementById('total-revenue').textContent = '$' + s.revenue.toFixed(0);
+        document.getElementById('pending-orders').textContent = s.pending;
+        document.getElementById('week-orders').textContent = s.weekOrders;
+        document.getElementById('month-orders').textContent = s.monthOrders;
+        document.getElementById('week-revenue').textContent = '$' + s.weekRevenue.toFixed(2);
+        document.getElementById('month-revenue').textContent = '$' + s.monthRevenue.toFixed(2);
+    }
+
+    function filterOrders(period, btn) {
+        document.querySelectorAll('#page-orders .tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        renderOrders(period);
+    }
+
+    function renderOrders(period) {
+        const now = new Date();
+        let orders = appData.orders;
+
+        if (period === 'week') {
+            orders = orders.filter(o => {
+                const d = new Date(o.date);
+                return (now - d) <= 7 * 24 * 60 * 60 * 1000;
+            });
+        } else if (period === 'month') {
+            orders = orders.filter(o => {
+                const d = new Date(o.date);
+                return (now - d) <= 30 * 24 * 60 * 60 * 1000;
+            });
+        } else if (period === 'year') {
+            orders = orders.filter(o => {
+                const d = new Date(o.date);
+                return (now - d) <= 365 * 24 * 60 * 60 * 1000;
+            });
+        }
+
+        const container = document.getElementById('orders-list');
+
+        if (!orders.length) {
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div><p>No orders for this period</p></div>`;
+            return;
+        }
+
+        container.innerHTML = orders.map(o => `
+            <div class="order-item">
+                <div class="order-header">
+                    <span class="order-id">Order #${o.id}</span>
+                    <span class="order-status ${o.status === 'Completed' ? 'completed' : ''}">${o.status}</span>
+                </div>
+                <div class="order-details">
+                    👤 ${o.buyer} → 🏢 ${o.supplier}<br>
+                    🧱 ${o.material} | 📦 ${o.qty} units | 🕐 ${o.date}
+                </div>
+                <div class="order-amount">💰 $${o.total.toLocaleString()} <span style="color:#f6ad55;font-size:12px">(fee: $${o.commission})</span></div>
+            </div>
+        `).join('');
+    }
+
+    function filterRevenue(period, btn) {
+        document.querySelectorAll('#page-revenue .tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        renderRevenue(period);
+    }
+
+    function renderRevenue(period) {
+        const s = appData.stats;
+        const labels = { week: 'This Week', month: 'This Month', year: 'This Year', all: 'All Time' };
+        const values = { week: s.weekRevenue, month: s.monthRevenue, year: s.yearRevenue, all: s.revenue };
+
+        document.getElementById('revenue-display').textContent = '$' + values[period].toFixed(2);
+        document.getElementById('revenue-period-label').textContent = labels[period];
+        document.getElementById('rev-week').textContent = '$' + s.weekRevenue.toFixed(2);
+        document.getElementById('rev-month').textContent = '$' + s.monthRevenue.toFixed(2);
+        document.getElementById('rev-year').textContent = '$' + s.yearRevenue.toFixed(2);
+        document.getElementById('rev-all').textContent = '$' + s.revenue.toFixed(2);
+    }
+
+    function renderUsers() {
+        const container = document.getElementById('users-list');
+        const users = appData.users;
+
+        if (!users.length) {
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><p>No users yet</p></div>`;
+            return;
+        }
+
+        const suppliers = users.filter(u => u.role === 'supplier');
+        const buyers = users.filter(u => u.role === 'buyer');
+
+        const renderGroup = (list, role) => list.map(u => `
+            <div class="user-item">
+                <div class="user-avatar ${role}">${role === 'supplier' ? '🏗' : '🛒'}</div>
+                <div>
+                    <div class="user-name">${u.name}</div>
+                    <div class="user-company">${u.company}</div>
+                </div>
+                <span class="user-role ${role}">${role.toUpperCase()}</span>
+            </div>
+        `).join('');
+
+        container.innerHTML = `
+            <div style="font-size:13px;font-weight:700;color:#a0aec0;margin-bottom:8px">🏗 Suppliers (${suppliers.length})</div>
+            ${renderGroup(suppliers, 'supplier')}
+            <div style="font-size:13px;font-weight:700;color:#a0aec0;margin:16px 0 8px">🛒 Buyers (${buyers.length})</div>
+            ${renderGroup(buyers, 'buyer')}
+        `;
+    }
+
+    // Initialize
+    loadOverview();
+</script>
+</body>
+</html>
