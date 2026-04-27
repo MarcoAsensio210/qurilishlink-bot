@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QurilishLink — Buyer Dashboard</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f1117;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 16px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #2d3748;
+        }
+        .header-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #1a4a7a, #63b3ed);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        .header h1 { font-size: 18px; font-weight: 700; color: #fff; }
+        .header p { font-size: 12px; color: #718096; }
+        .badge {
+            margin-left: auto;
+            background: #1a4a7a;
+            color: #63b3ed;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 4px;
+            background: #1a202c;
+            padding: 4px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .nav-tab {
+            flex: 1;
+            padding: 8px 4px;
+            border: none;
+            background: transparent;
+            color: #718096;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .nav-tab .icon { font-size: 18px; }
+        .nav-tab.active { background: #1a4a7a; color: #63b3ed; }
+        .page { display: none; }
+        .page.active { display: block; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            padding: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+        }
+        .stat-card.blue::before { background: linear-gradient(90deg, #2E75B6, #63b3ed); }
+        .stat-card.green::before { background: linear-gradient(90deg, #38a169, #68d391); }
+        .stat-card.orange::before { background: linear-gradient(90deg, #dd6b20, #f6ad55); }
+        .stat-card.purple::before { background: linear-gradient(90deg, #805ad5, #b794f4); }
+        .stat-icon { font-size: 22px; margin-bottom: 6px; }
+        .stat-value { font-size: 26px; font-weight: 800; color: #fff; }
+        .stat-label { font-size: 11px; color: #718096; margin-top: 2px; }
+        .section {
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+        .section-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+        .order-item {
+            background: #0f1117;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .order-id { font-size: 13px; font-weight: 700; color: #63b3ed; }
+        .order-status {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .order-status.pending { background: #744210; color: #f6ad55; }
+        .order-status.confirmed { background: #1c4532; color: #68d391; }
+        .order-status.rejected { background: #63171b; color: #fc8181; }
+        .order-details { font-size: 12px; color: #a0aec0; line-height: 1.8; }
+        .delivery-track {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #2d3748;
+        }
+        .track-title { font-size: 11px; font-weight: 700; color: #a0aec0; margin-bottom: 8px; }
+        .track-steps {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+        }
+        .track-steps::before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background: #2d3748;
+        }
+        .track-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            z-index: 1;
+        }
+        .step-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #2d3748;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .step-dot.active { background: #2E75B6; }
+        .step-dot.done { background: #38a169; }
+        .step-label { font-size: 9px; color: #718096; text-align: center; max-width: 50px; }
+        .supplier-item {
+            background: #0f1117;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .supplier-name { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+        .supplier-info { font-size: 12px; color: #718096; margin-bottom: 8px; }
+        .product-tag {
+            display: inline-block;
+            background: #1a4a7a;
+            color: #63b3ed;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin: 2px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 32px;
+            color: #4a5568;
+        }
+        .empty-icon { font-size: 36px; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-icon">🛒</div>
+    <div>
+        <h1>Buyer Dashboard</h1>
+        <p>QurilishLink</p>
+    </div>
+    <div class="badge">BUYER</div>
+</div>
+
+<div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('orders', this)">
+        <span class="icon">📋</span>My Orders
+    </button>
+    <button class="nav-tab" onclick="showPage('track', this)">
+        <span class="icon">🚚</span>Tracking
+    </button>
+    <button class="nav-tab" onclick="showPage('suppliers', this)">
+        <span class="icon">🏢</span>Suppliers
+    </button>
+    <button class="nav-tab" onclick="showPage('stats', this)">
+        <span class="icon">📊</span>Stats
+    </button>
+</div>
+
+<!-- MY ORDERS -->
+<div id="page-orders" class="page active">
+    <div id="orders-list"></div>
+</div>
+
+<!-- TRACKING -->
+<div id="page-track" class="page">
+    <div id="track-list"></div>
+</div>
+
+<!-- SUPPLIERS -->
+<div id="page-suppliers" class="page">
+    <div id="suppliers-list"></div>
+</div>
+
+<!-- STATS -->
+<div id="page-stats" class="page">
+    <div class="stats-grid">
+        <div class="stat-card blue">
+            <div class="stat-icon">📦</div>
+            <div class="stat-value" id="stat-total">5</div>
+            <div class="stat-label">Total Orders</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value" id="stat-confirmed">3</div>
+            <div class="stat-label">Confirmed</div>
+        </div>
+        <div class="stat-card orange">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-value" id="stat-pending">1</div>
+            <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card purple">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value" id="stat-spent">$582K</div>
+            <div class="stat-label">Total Spent</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.setHeaderColor('#0f1117');
+    tg.setBackgroundColor('#0f1117');
+
+    const data = {
+        orders: [
+            { id: 1, supplier: "FatxStroy", material: "Cement", qty: 5000, total: 300000, commission: 6000, status: "Confirmed", type: "delivery", delivery: "Out for Delivery" },
+            { id: 2, supplier: "BekCement", material: "Sand", qty: 10000, total: 150000, commission: 3000, status: "Pending", type: "pickup", delivery: "Pending" },
+            { id: 3, supplier: "UzSteel", material: "Steel Bars", qty: 100, total: 12000, commission: 240, status: "Confirmed", type: "delivery", delivery: "Delivered" },
+            { id: 4, supplier: "SandPro", material: "Sand", qty: 2000, total: 30000, commission: 600, status: "Rejected", type: "pickup", delivery: "Rejected" },
+            { id: 5, supplier: "FatxStroy", material: "Cement", qty: 1000, total: 60000, commission: 1200, status: "Confirmed", type: "pickup", delivery: "Ready for Pickup" },
+        ],
+        suppliers: [
+            { id: 1, name: "FatxStroy", company: "FatxStroy LLC", contact: "+998712421111", delivery: true, products: ["Cement", "Sand"] },
+            { id: 2, name: "BekCement", company: "BekCement Co", contact: "+998901234567", delivery: false, products: ["Cement"] },
+            { id: 3, name: "UzSteel", company: "UzSteel Industries", contact: "+998711234567", delivery: true, products: ["Steel Bars", "Steel Sheets"] },
+        ]
+    };
+
+    const deliverySteps = {
+        delivery: ["Pending", "Processing", "Out for Delivery", "Delivered"],
+        pickup: ["Pending", "Processing", "Ready for Pickup", "Picked Up"]
+    };
+
+    function showPage(page, btn) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('page-' + page).classList.add('active');
+        btn.classList.add('active');
+
+        if (page === 'orders') renderOrders();
+        if (page === 'track') renderTracking();
+        if (page === 'suppliers') renderSuppliers();
+        if (page === 'stats') renderStats();
+    }
+
+    function getStatusClass(status) {
+        if (status === 'Confirmed') return 'confirmed';
+        if (status === 'Rejected') return 'rejected';
+        return 'pending';
+    }
+
+    function renderOrders() {
+        const container = document.getElementById('orders-list');
+        container.innerHTML = data.orders.map(o => `
+            <div class="order-item">
+                <div class="order-header">
+                    <span class="order-id">Order #${o.id}</span>
+                    <span class="order-status ${getStatusClass(o.status)}">${o.status}</span>
+                </div>
+                <div class="order-details">
+                    🏢 ${o.supplier}<br>
+                    🧱 ${o.material} | 📦 ${o.qty.toLocaleString()} units<br>
+                    💰 $${o.total.toLocaleString()} (fee: $${o.commission.toLocaleString()})<br>
+                    ${o.type === 'delivery' ? '🚚 Delivery' : '🏪 Pickup'}: ${o.delivery}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderTracking() {
+        const container = document.getElementById('track-list');
+        const activeOrders = data.orders.filter(o => o.status === 'Confirmed');
+
+        if (!activeOrders.length) {
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">🚚</div><p>No active deliveries</p></div>`;
+            return;
+        }
+
+        container.innerHTML = activeOrders.map(o => {
+            const steps = deliverySteps[o.type];
+            const currentIdx = steps.indexOf(o.delivery);
+
+            const stepsHtml = steps.map((step, idx) => {
+                const dotClass = idx < currentIdx ? 'done' : idx === currentIdx ? 'active' : '';
+                const icon = idx < currentIdx ? '✓' : idx === currentIdx ? '●' : '○';
+                return `
+                    <div class="track-step">
+                        <div class="step-dot ${dotClass}">${icon}</div>
+                        <div class="step-label">${step}</div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="order-item">
+                    <div class="order-header">
+                        <span class="order-id">Order #${o.id}</span>
+                        <span class="order-status confirmed">${o.delivery}</span>
+                    </div>
+                    <div class="order-details">
+                        🏢 ${o.supplier} | 🧱 ${o.material}<br>
+                        📦 ${o.qty.toLocaleString()} units
+                    </div>
+                    <div class="delivery-track">
+                        <div class="track-title">${o.type === 'delivery' ? '🚚 DELIVERY TRACKING' : '🏪 PICKUP STATUS'}</div>
+                        <div class="track-steps">${stepsHtml}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderSuppliers() {
+        const container = document.getElementById('suppliers-list');
+        container.innerHTML = data.suppliers.map(s => `
+            <div class="supplier-item">
+                <div class="supplier-name">🏢 ${s.company}</div>
+                <div class="supplier-info">
+                    👤 ${s.name} | 📞 ${s.contact}<br>
+                    ${s.delivery ? '🚚 Delivery available' : '🏪 Pickup only'}
+                </div>
+                <div>
+                    ${s.products.map(p => `<span class="product-tag">📦 ${p}</span>`).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderStats() {
+        const total = data.orders.length;
+        const confirmed = data.orders.filter(o => o.status === 'Confirmed').length;
+        const pending = data.orders.filter(o => o.status === 'Pending').length;
+        const spent = data.orders.filter(o => o.status === 'Confirmed').reduce((s, o) => s + o.total, 0);
+
+        document.getElementById('stat-total').textContent = total;
+        document.getElementById('stat-confirmed').textContent = confirmed;
+        document.getElementById('stat-pending').textContent = pending;
+        document.getElementById('stat-spent').textContent = '$' + (spent / 1000).toFixed(0) + 'K';
+    }
+
+    // Initialize
+    renderOrders();
+    renderTracking();
+    renderSuppliers();
+    renderStats();
+</script>
+</body>
+</html>

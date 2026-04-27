@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QurilishLink — Supplier Dashboard</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f1117;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 16px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #2d3748;
+        }
+        .header-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #375623, #68d391);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        .header h1 { font-size: 18px; font-weight: 700; color: #fff; }
+        .header p { font-size: 12px; color: #718096; }
+        .badge {
+            margin-left: auto;
+            background: #1c4532;
+            color: #68d391;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 4px;
+            background: #1a202c;
+            padding: 4px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .nav-tab {
+            flex: 1;
+            padding: 8px 4px;
+            border: none;
+            background: transparent;
+            color: #718096;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .nav-tab .icon { font-size: 18px; }
+        .nav-tab.active { background: #375623; color: #68d391; }
+        .page { display: none; }
+        .page.active { display: block; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            padding: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+        }
+        .stat-card.green::before { background: linear-gradient(90deg, #38a169, #68d391); }
+        .stat-card.blue::before { background: linear-gradient(90deg, #2E75B6, #63b3ed); }
+        .stat-card.orange::before { background: linear-gradient(90deg, #dd6b20, #f6ad55); }
+        .stat-card.purple::before { background: linear-gradient(90deg, #805ad5, #b794f4); }
+        .stat-icon { font-size: 22px; margin-bottom: 6px; }
+        .stat-value { font-size: 26px; font-weight: 800; color: #fff; }
+        .stat-label { font-size: 11px; color: #718096; margin-top: 2px; }
+        .section {
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+        .product-item {
+            background: #0f1117;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+        .product-name { font-size: 14px; font-weight: 700; color: #fff; }
+        .product-desc { font-size: 12px; color: #718096; margin: 4px 0; }
+        .product-details { font-size: 12px; color: #a0aec0; }
+        .stock-bar {
+            background: #2d3748;
+            border-radius: 4px;
+            height: 6px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .stock-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #38a169, #68d391);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        .stock-fill.low { background: linear-gradient(90deg, #dd6b20, #f6ad55); }
+        .stock-fill.empty { background: linear-gradient(90deg, #c53030, #fc8181); }
+        .order-item {
+            background: #0f1117;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .order-id { font-size: 13px; font-weight: 700; color: #63b3ed; }
+        .order-status {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .order-status.pending { background: #744210; color: #f6ad55; }
+        .order-status.confirmed { background: #1c4532; color: #68d391; }
+        .order-status.rejected { background: #63171b; color: #fc8181; }
+        .order-details { font-size: 12px; color: #a0aec0; line-height: 1.6; }
+        .delivery-badge {
+            display: inline-block;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-top: 4px;
+        }
+        .delivery-badge.delivery { background: #1a4a7a; color: #63b3ed; }
+        .delivery-badge.pickup { background: #2d3748; color: #a0aec0; }
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #2d3748;
+            font-size: 13px;
+        }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-name { color: #a0aec0; }
+        .metric-val { color: #fff; font-weight: 700; }
+        .empty-state {
+            text-align: center;
+            padding: 32px;
+            color: #4a5568;
+        }
+        .empty-icon { font-size: 36px; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-icon">🏗</div>
+    <div>
+        <h1>Supplier Dashboard</h1>
+        <p>QurilishLink</p>
+    </div>
+    <div class="badge">SUPPLIER</div>
+</div>
+
+<div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('overview', this)">
+        <span class="icon">📊</span>Overview
+    </button>
+    <button class="nav-tab" onclick="showPage('products', this)">
+        <span class="icon">📦</span>Products
+    </button>
+    <button class="nav-tab" onclick="showPage('orders', this)">
+        <span class="icon">📋</span>Orders
+    </button>
+    <button class="nav-tab" onclick="showPage('stats', this)">
+        <span class="icon">💰</span>Revenue
+    </button>
+</div>
+
+<!-- OVERVIEW -->
+<div id="page-overview" class="page active">
+    <div class="stats-grid">
+        <div class="stat-card green">
+            <div class="stat-icon">📦</div>
+            <div class="stat-value" id="total-products">3</div>
+            <div class="stat-label">Products</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-icon">📋</div>
+            <div class="stat-value" id="total-orders">12</div>
+            <div class="stat-label">Total Orders</div>
+        </div>
+        <div class="stat-card orange">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-value" id="pending-orders">3</div>
+            <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card purple">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value" id="total-revenue">$2,400</div>
+            <div class="stat-label">Total Sales</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">📊 Quick Stats</div>
+        <div class="metric-row">
+            <span class="metric-name">✅ Confirmed Orders</span>
+            <span class="metric-val" id="confirmed-orders">8</span>
+        </div>
+        <div class="metric-row">
+            <span class="metric-name">❌ Rejected Orders</span>
+            <span class="metric-val" id="rejected-orders">1</span>
+        </div>
+        <div class="metric-row">
+            <span class="metric-name">🚚 Delivery Orders</span>
+            <span class="metric-val" id="delivery-orders">5</span>
+        </div>
+        <div class="metric-row">
+            <span class="metric-name">🏪 Pickup Orders</span>
+            <span class="metric-val" id="pickup-orders">7</span>
+        </div>
+    </div>
+</div>
+
+<!-- PRODUCTS -->
+<div id="page-products" class="page">
+    <div id="products-list"></div>
+</div>
+
+<!-- ORDERS -->
+<div id="page-orders" class="page">
+    <div id="orders-list"></div>
+</div>
+
+<!-- REVENUE -->
+<div id="page-stats" class="page">
+    <div class="section">
+        <div class="section-title">💰 Revenue Breakdown</div>
+        <div class="metric-row">
+            <span class="metric-name">📅 This Week</span>
+            <span class="metric-val">$480.00</span>
+        </div>
+        <div class="metric-row">
+            <span class="metric-name">🗓 This Month</span>
+            <span class="metric-val">$1,920.00</span>
+        </div>
+        <div class="metric-row">
+            <span class="metric-name">📆 This Year</span>
+            <span class="metric-val">$2,400.00</span>
+        </div>
+        <div class="metric-row">
+            <span class="metric-name">💵 All Time</span>
+            <span class="metric-val">$2,400.00</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.setHeaderColor('#0f1117');
+    tg.setBackgroundColor('#0f1117');
+
+    const data = {
+        products: [
+            { id: 1, name: "Cement", desc: "High quality Portland cement Grade 42.5", price: 60, unit: "Bag", stock: 150000, maxStock: 200000 },
+            { id: 2, name: "Sand", desc: "Fine construction sand, river sourced", price: 15, unit: "Bag", stock: 1000000, maxStock: 1000000 },
+            { id: 3, name: "Steel Bars", desc: "Reinforcement steel bars 12mm diameter", price: 120, unit: "piece", stock: 500, maxStock: 2000 },
+        ],
+        orders: [
+            { id: 1, buyer: "Toshkent Qurilish LLC", material: "Cement", qty: 5000, total: 300000, status: "Confirmed", type: "delivery", delivery: "Out for Delivery" },
+            { id: 2, buyer: "Samarkand Build Co", material: "Sand", qty: 10000, total: 150000, status: "Pending", type: "pickup", delivery: "Pending" },
+            { id: 3, buyer: "Namangan Construkt", material: "Steel Bars", qty: 100, total: 12000, status: "Confirmed", type: "delivery", delivery: "Delivered" },
+            { id: 4, buyer: "Fergana Group", material: "Cement", qty: 2000, total: 120000, status: "Rejected", type: "pickup", delivery: "Rejected" },
+        ]
+    };
+
+    function showPage(page, btn) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('page-' + page).classList.add('active');
+        btn.classList.add('active');
+
+        if (page === 'products') renderProducts();
+        if (page === 'orders') renderOrders();
+    }
+
+    function renderProducts() {
+        const container = document.getElementById('products-list');
+        if (!data.products.length) {
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div><p>No products yet</p></div>`;
+            return;
+        }
+        container.innerHTML = data.products.map(p => {
+            const pct = Math.min((p.stock / p.maxStock) * 100, 100);
+            const fillClass = pct === 0 ? 'empty' : pct < 20 ? 'low' : '';
+            const stockIcon = p.stock > 0 ? '✅' : '❌';
+            return `
+                <div class="product-item">
+                    <div class="product-name">${p.name} ${stockIcon}</div>
+                    <div class="product-desc">${p.desc}</div>
+                    <div class="product-details">💵 $${p.price}/${p.unit} | 📦 ${p.stock.toLocaleString()} ${p.unit} in stock</div>
+                    <div class="stock-bar"><div class="stock-fill ${fillClass}" style="width:${pct}%"></div></div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderOrders() {
+        const container = document.getElementById('orders-list');
+        if (!data.orders.length) {
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><p>No orders yet</p></div>`;
+            return;
+        }
+        container.innerHTML = data.orders.map(o => `
+            <div class="order-item">
+                <div class="order-header">
+                    <span class="order-id">Order #${o.id}</span>
+                    <span class="order-status ${o.status.toLowerCase()}">${o.status}</span>
+                </div>
+                <div class="order-details">
+                    👤 ${o.buyer}<br>
+                    🧱 ${o.material} | 📦 ${o.qty.toLocaleString()} units<br>
+                    💰 $${o.total.toLocaleString()}
+                </div>
+                <span class="delivery-badge ${o.type}">${o.type === 'delivery' ? '🚚 ' : '🏪 '}${o.delivery}</span>
+            </div>
+        `).join('');
+    }
+    // Initialize
+    renderProducts();
+    renderOrders();
+</script>
+</body>
+</html>

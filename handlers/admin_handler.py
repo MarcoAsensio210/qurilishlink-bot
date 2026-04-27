@@ -27,12 +27,18 @@ class AdminHandler:
             return await self.all_users(update, context)
         elif text == "💰 Revenue Report":
             return await self.revenue_report(update, context)
-        elif text == "🔙 Back":
-            role = self.db.get_user_role(telegram_id)
-            from handlers.start_handler import SUPPLIER_MENU, BUYER_MENU
-            menu = SUPPLIER_MENU if role == "supplier" else BUYER_MENU
-            await update.message.reply_text("Back to main menu:", reply_markup=menu)
-            return ROLE_CHOICE
+        elif text == "📅 This Week":
+            return await self.handle_order_filter(update, context)
+        elif text == "🗓 This Month":
+            return await self.handle_order_filter(update, context)
+        elif text == "📆 This Year":
+            return await self.handle_order_filter(update, context)
+        elif text == "📋 All Orders":
+            return await self.handle_order_filter(update, context)
+        elif text == "🔙 Back to Admin":
+            await update.message.reply_text("Admin menu:", reply_markup=ADMIN_MENU)
+            return ADMIN_ACTION
+        
         else:
             await update.message.reply_text(
                 "Please choose an option from the admin menu.",

@@ -17,7 +17,7 @@ class AIRecommender:
         return R * c
 
     def recommend_supplier(self, material, buyer_lat, buyer_lon):
-        # Get all products with their supplier info
+        # Get all products with stock > 0 and their supplier info
         all_products = self.db.get_all_products_with_supplier()
 
         # Filter by material
@@ -27,15 +27,16 @@ class AIRecommender:
         ]
 
         if not matching:
-            return None, f"No suppliers found for '{material}'."
+            return None, f"No suppliers found for '{material}' with available stock."
 
         # Score each matching product
+        # p = (product_id, material, price, unit, stock, supplier_id, sup_name, sup_company, sup_contact, lat, lon)
         scored = []
         for p in matching:
-            # p = (product_id, material, price, unit, supplier_id, sup_name, sup_company, sup_contact, lat, lon)
             price = p[2]
-            lat = p[8]
-            lon = p[9]
+            stock = p[4]
+            lat = p[9]
+            lon = p[10]
 
             # Calculate distance
             if lat and lon:
@@ -46,7 +47,9 @@ class AIRecommender:
             # Multi-factor scoring
             distance_score = 1 / (distance + 0.1)
             price_score = 1 / (price + 0.1)
-            total_score = (distance_score * 0.5) + (price_score * 0.5)
+            stock_score = min(stock / 1000, 1.0)  # bonus for high stock
+
+            total_score = (distance_score * 0.5) + (price_score * 0.3) + (stock_score * 0.2)
 
             scored.append((total_score, distance, p))
 
@@ -55,13 +58,14 @@ class AIRecommender:
 
         best_score, best_distance, best = scored[0]
 
-        # best[4] = supplier_id, best[5] = name, best[6] = company, best[7] = contact
-        supplier_info = (best[4], best[5], best[6], best[7], best[8], best[9])
+        # best[5]=supplier_id, best[6]=name, best[7]=company, best[8]=contact, best[9]=lat, best[10]=lon
+        supplier_info = (best[5], best[6], best[7], best[8], best[9], best[10])
 
         reason = (
             f"📍 Distance: {best_distance:.1f} km away\n"
             f"💵 Price: ${best[2]}/{best[3]}\n"
-            f"🏆 Best combined distance + price score"
+            f"📦 Available stock: {best[4]} {best[3]}\n"
+            f"🏆 Best combined distance + price + stock score"
         )
 
         return supplier_info, reason
