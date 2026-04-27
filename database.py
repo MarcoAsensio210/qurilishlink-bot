@@ -80,6 +80,7 @@ class Database:
                 total_cost REAL,
                 commission REAL,
                 delivery_type TEXT DEFAULT 'pickup',
+                payment_method TEXT DEFAULT 'cash',
                 status TEXT DEFAULT 'Pending',
                 delivery_status TEXT DEFAULT 'Pending',
                 placed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

@@ -2,7 +2,7 @@ from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKey
 from telegram.ext import ContextTypes, ConversationHandler
 from handlers.start_handler import (
     ROLE_CHOICE, BUY_NAME, BUY_COMPANY,
-    ORDER_SUPPLIER, ORDER_PRODUCT, ORDER_QUANTITY, ORDER_DELIVERY,
+    ORDER_SUPPLIER, ORDER_PRODUCT, ORDER_QUANTITY, ORDER_DELIVERY, ORDER_PAYMENT,
     AI_MATERIAL, AI_LOCATION,
     BUYER_MENU
 )
@@ -224,7 +224,13 @@ class BuyerHandler:
                 )
                 return ORDER_DELIVERY
             else:
-                return await self._place_order(update, context, "pickup")
+                context.user_data["order_delivery_type"] = "pickup"
+                keyboard = [["💵 Cash", "💳 Card"]]
+                await update.message.reply_text(
+                    "💳 How would you like to pay?",
+                    reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+                )
+                return ORDER_PAYMENT
 
         except ValueError:
             await update.message.reply_text("Please enter a valid number.")
@@ -232,9 +238,20 @@ class BuyerHandler:
 
     async def order_delivery(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         delivery_type = "delivery" if "Delivery" in update.message.text else "pickup"
-        return await self._place_order(update, context, delivery_type)
+        context.user_data["order_delivery_type"] = delivery_type
+        keyboard = [["💵 Cash", "💳 Card"]]
+        await update.message.reply_text(
+            "💳 How would you like to pay?",
+            reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+        )
+        return ORDER_PAYMENT
 
-    async def _place_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE, delivery_type: str):
+    async def order_payment(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        payment_method = "cash" if "Cash" in update.message.text else "card"
+        delivery_type = context.user_data.get("order_delivery_type", "pickup")
+        return await self._place_order(update, context, delivery_type, payment_method)
+
+    async def _place_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE, delivery_type: str, payment_method: str = "cash"):
         d = context.user_data
         qty = d["order_qty"]
         buyer_name = self.db.get_buyer_name(update.effective_user.id)
@@ -243,7 +260,7 @@ class BuyerHandler:
             update.effective_user.id, buyer_name,
             d["order_supplier_id"], d["order_supplier_name"],
             d["order_product_id"], d["order_material"],
-            qty, d["order_price"], delivery_type
+            qty, d["order_price"], delivery_type, payment_method
         )
 
         delivery_text = "🚚 Delivery" if delivery_type == "delivery" else "🏪 Pick Up"
@@ -257,6 +274,7 @@ class BuyerHandler:
             f"💰 Total Cost: ${total_cost}\n"
             f"📊 Platform Fee (2%): ${commission}\n"
             f"{delivery_text}\n"
+            f"{payment_method.upper()} Payment\n"
             f"📋 Status: Pending\n\n"
             f"⏳ Waiting for supplier confirmation...",
             parse_mode="Markdown",
